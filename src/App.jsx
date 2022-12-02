@@ -2,7 +2,7 @@ import Home from "./comonents/Home";
 
 function App() {
   return (
-    <div className="min-h-screen">
+    <div>
       <div className="gradient-bg-welcome flex justify-center">
         <Home/>
       </div>
