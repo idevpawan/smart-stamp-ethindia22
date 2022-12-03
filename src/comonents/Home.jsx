@@ -43,6 +43,7 @@ const Home = () => {
       if (accounts.length !== 0) {
         setCurrentAccount(accounts[0]);
       }
+      checkNetwork();
     } catch (error) {
       console.log("Error", error);
     }
@@ -55,6 +56,7 @@ const Home = () => {
       return setIsError("Details should not exceeds more than 1000 words.");
     }
     try {
+      checkNetwork();
       setIsLoading(true);
       const { ethereum } = window;
       if (ethereum) {
@@ -91,7 +93,7 @@ const Home = () => {
   useEffect(() => {
     checkIfWalletIsConnected();
   }, []);
-  
+
   const btnTitle = isLoading ? "Creating...! Please wait" : "Create Stamp";
 
   const ifWalletConnected = () => {
@@ -100,6 +102,7 @@ const Home = () => {
         <p className="text-4xl mb-8 tracking-wide text-gray-600">
           Create your Stamp
         </p>
+
         <textarea
           rows="8"
           cols="100"
@@ -109,6 +112,16 @@ const Home = () => {
         ></textarea>
         <p className="text-sm mt-2 text-red-500">{isError}</p>
         <Button disabled={isLoading} onClick={mintStamp} title={btnTitle} />
+        <p>
+          Don't have matic?{" "}
+          <a
+            target={"_blank"}
+            className="text-blue-500 text-sm"
+            href="https://faucet.polygon.technology/"
+          >
+            Click here to get some
+          </a>
+        </p>
         {nftLink && (
           <div className="bg-green-100 rounded-lg p-5">
             <div className="text-sm -mb-5">
@@ -128,6 +141,46 @@ const Home = () => {
   window.ethereum.on("accountsChanged", async () => {
     setCurrentAccount("");
   });
+
+  const targetNetworkId = "0x13881";
+
+  const checkNetwork = async () => {
+    if (window.ethereum) {
+      const currentChainId = await window.ethereum.request({
+        method: "eth_chainId",
+      });
+      if (currentChainId == targetNetworkId) return true;
+      return switchNetwork();
+    }
+  };
+  // switches network to the one provided
+  const switchNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: targetNetworkId }],
+      });
+    } catch {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: targetNetworkId,
+            chainName: "Polygon Mumbai Testnet",
+            nativeCurrency: {
+              name: "Mumbai Testnet",
+              symbol: "Matic",
+              decimals: 18,
+            },
+            rpcUrls: ["https://rpc-mumbai.maticvigil.com/"],
+            blockExplorerUrls: ["https://mumbai.polygonscan.com/"],
+          },
+        ],
+      });
+    }
+    // refresh
+    window.location.reload();
+  };
 
   return (
     <div>
