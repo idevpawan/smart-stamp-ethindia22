@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import Card from "./comonents/Card/Card";
 import Home from "./comonents/Home";
 
 function App() {
