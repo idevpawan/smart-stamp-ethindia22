@@ -112,16 +112,18 @@ const Home = () => {
         ></textarea>
         <p className="text-sm mt-2 text-red-500">{isError}</p>
         <Button disabled={isLoading} onClick={mintStamp} title={btnTitle} />
-        <p>
-          Don't have matic?{" "}
-          <a
-            target={"_blank"}
-            className="text-blue-500 text-sm"
-            href="https://faucet.polygon.technology/"
-          >
-            Click here to get some
-          </a>
-        </p>
+        {!nftLink && (
+          <p>
+            Don't have matic?{" "}
+            <a
+              target={"_blank"}
+              className="text-blue-500 text-sm"
+              href="https://faucet.polygon.technology/"
+            >
+              Click here to get some
+            </a>
+          </p>
+        )}
         {nftLink && (
           <div className="bg-green-100 rounded-lg p-5">
             <div className="text-sm -mb-5">
