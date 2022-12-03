@@ -1,83 +1,157 @@
-import { useEffect, useState } from 'react';
+import { ethers } from "ethers";
+import { useEffect, useState } from "react";
+import Stamps from "../utils/Stamps.json";
+import Button from "./Button/Button";
+import { CONTRACT_ADDRESS } from "../utils/constants";
 
-const getEthereumObject = () => window?.ethereum;
-
-const getMetamask = async() =>{
-  try {
-    const ethereum = getEthereumObject();
-
-  if(!ethereum){
-    alert("Get Metamask");
-    return;
-  }
-  const accounts = await ethereum.request({method: 'eth_accounts'});
-  const account = accounts[0];
-  if(accounts.length !== 0){
-    console.log("Found an authorized accounts ", account);
-    return account;
-  }else{
-    console.log("No authorized account found");
-    return;
-  }
-    
-  } catch (error) {
-    console.log("Error: ",error);
-  }
-}
 const Home = () => {
+  const [currentAccount, setCurrentAccount] = useState("");
+  const [textData, setTextData] = useState();
+  const [isError, setIsError] = useState();
+  const [nftLink, setNftLink] = useState();
+  const [isLoading, setIsLoading] = useState(false);
 
-    const [currentAccount, setCurrentAccount] = useState("");
+  const checkIfWalletIsConnected = async () => {
+    const { ethereum } = window;
 
-    const connectWallet = async() =>{
-      try {
-        const ethereum = getEthereumObject();
-      if(!ethereum){
-        return
-      }
-      const accounts = await ethereum.request({method: 'eth_requestAccounts'});
-      setCurrentAccount(accounts[0]);
+    if (!ethereum) {
+      console.log("Make sure you have metamask!");
       return;
-        
-      } catch (error) {
-        console.log("Error", error)
-      }
     }
-  
-    useEffect(()=>{
-      const account = getMetamask();
-      if(account !== null){
-        setCurrentAccount(account);
-      }
-    },[])
-  
-    return (
-        <div className="flex flex-row space-between items-center mb-40">
-          <div className="flex mf:flex-row flex-row items-start justify-between lg:p-20 py-12 px-4 gap-80">
-            <div className="flex flex-1 justify-start items-start flex-col mf:mr-10">
-              <h1 className="text-3xl sm:text-5xl text-white text-gradient py-1">
-                Smart Stamp <br /> across the world
-              </h1>
-              <p className="text-left mt-5 text-white font-light md:w-9/12 w-11/12 text-base">
-                Explore the crypto world. Buy and sell smart stamp with a click easily.
-              </p>
-              
-        </div>
-        <div className="items-end ">
-            <button
-              type="button"
-              onClick={connectWallet}
-              className="mr-0 my-5 bg-[#2952e3] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]"
-            >
-              {/* <AiFillPlayCircle className="text-white mr-2" /> */}
-              <p className="text-white text-base font-semibold">
-                Connect Wallet
-              </p>
-            </button>
-            </div>
-        </div>
 
+    const accounts = await ethereum.request({ method: "eth_accounts" });
+
+    if (accounts.length !== 0) {
+      const account = accounts[0];
+      setCurrentAccount(account);
+    } else {
+      console.log("No authorized account found");
+    }
+  };
+
+  const connectWallet = async () => {
+    try {
+      const { ethereum } = window;
+      if (!ethereum) {
+        alert("Please install metamask!");
+      }
+      const accounts = await ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      if (accounts.length !== 0) {
+        setCurrentAccount(accounts[0]);
+      }
+    } catch (error) {
+      console.log("Error", error);
+    }
+  };
+
+  const mintStamp = async () => {
+    if (!textData) {
+      return setIsError("Details cannot be empty!");
+    } else if (textData.length > 1000) {
+      return setIsError("Details should not exceeds more than 1000 words.");
+    }
+    try {
+      setIsLoading(true);
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          Stamps.abi,
+          signer
+        );
+        let tx = await contract.createStamp(textData);
+        let txNo = await contract.getTotalStamps();
+        const receipt = await tx.wait();
+        if (receipt.status === 1) {
+          setIsLoading(false);
+          setNftLink(
+            `https://testnets.opensea.io/assets/mumbai/${CONTRACT_ADDRESS}/${txNo}`
+          );
+        } else {
+          setIsLoading(false);
+          alert("Transaction failed! Please try again");
+        }
+      }
+    } catch (err) {
+      setIsLoading(false);
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    setIsError("");
+  }, [textData]);
+
+  useEffect(() => {
+    checkIfWalletIsConnected();
+  }, []);
+
+  const notConnectedUI = () => {
+    return (
+      <div className="flex h-screen text-center">
+        <div className="m-auto">
+          <p className="text-7xl font-bold text-gray-800 tracking-wider">
+            Smart Stamp
+          </p>
+          <p className="text-sm text-gray-500 w-1/2 mx-auto mt-5">
+            Welcome to Smart stamp service home screen. Are you worried about
+            lost of your contracts or stamps? Let us bring you blockchain NFT
+            based stamps where you just have to just connect your metamask and
+            write your stamps details. That's it.
+          </p>
+          <Button title="Connect Metamask" onClick={connectWallet} />
         </div>
-      );
-}
+      </div>
+    );
+  };
+
+  const btnTitle = isLoading ? "Creating...! Please wait" : "Create Stamp";
+
+  const ifWalletConnected = () => {
+    return (
+      <div className="mt-5 w-full">
+        <p className="text-4xl mb-8 tracking-wide text-gray-600">
+          Create your Stamp
+        </p>
+        <textarea
+          rows="8"
+          cols="100"
+          onChange={(e) => setTextData(e.target.value)}
+          className="rounded-lg p-5 w-full outline-none shadow-text"
+          placeholder="Enter your stamp details"
+        ></textarea>
+        <p className="text-sm mt-2 text-red-500">{isError}</p>
+        <Button disabled={isLoading} onClick={mintStamp} title={btnTitle} />
+        {nftLink && (
+          <div className="bg-green-100 rounded-lg p-5">
+            <div className="text-sm -mb-5">
+              Wooho!! You have created a Stamp. Click the link below to see your
+              Smart Stamp
+            </div>{" "}
+            <br />
+            <a className="text-blue-500" href={nftLink} target="_blank">
+              {nftLink}
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  window.ethereum.on("accountsChanged", async () => {
+    setCurrentAccount("");
+  });
+
+  return (
+    <div>
+      {!currentAccount && notConnectedUI()}{" "}
+      {currentAccount && ifWalletConnected()}
+    </div>
+  );
+};
 
 export default Home;
